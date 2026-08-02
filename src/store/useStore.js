@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 
+const API_BASE_URL = 'http://localhost:5000/api'
+
 export const useStore = create((set) => ({
   // UI State
   activeTab: 'dashboard',
@@ -12,23 +14,63 @@ export const useStore = create((set) => ({
   setLastCommand: (command) => set({ lastCommand: command }),
 
   // Tasks State
-  tasks: [
-    { id: 1, title: 'Review Marketing Campaign', status: 'pending', priority: 'high', dueDate: '2024-08-05' },
-    { id: 2, title: 'Track Social Media Analytics', status: 'in-progress', priority: 'medium', dueDate: '2024-08-03' },
-    { id: 3, title: 'Generate Reports', status: 'pending', priority: 'high', dueDate: '2024-08-04' },
-  ],
+  tasks: [],
   
-  addTask: (task) => set((state) => ({
-    tasks: [...state.tasks, { ...task, id: Date.now() }]
-  })),
+  // Fetch tasks from backend
+  fetchTasks: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks`)
+      const data = await response.json()
+      set({ tasks: data })
+    } catch (error) {
+      console.error('Error fetching tasks:', error)
+    }
+  },
+
+  addTask: async (task) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task)
+      })
+      const newTask = await response.json()
+      set((state) => ({
+        tasks: [...state.tasks, newTask]
+      }))
+    } catch (error) {
+      console.error('Error adding task:', error)
+    }
+  },
   
-  updateTask: (id, updates) => set((state) => ({
-    tasks: state.tasks.map(task => task.id === id ? { ...task, ...updates } : task)
-  })),
+  updateTask: async (id, updates) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      })
+      const updatedTask = await response.json()
+      set((state) => ({
+        tasks: state.tasks.map(task => task._id === id ? updatedTask : task)
+      }))
+    } catch (error) {
+      console.error('Error updating task:', error)
+    }
+  },
   
-  deleteTask: (id) => set((state) => ({
-    tasks: state.tasks.filter(task => task.id !== id)
-  })),
+  deleteTask: async (id) => {
+    try {
+      await fetch(`${API_BASE_URL}/tasks/${id}`, {
+        method: 'DELETE'
+      })
+      set((state) => ({
+        tasks: state.tasks.filter(task => task._id !== id)
+      }))
+    } catch (error) {
+      console.error('Error deleting task:', error)
+    }
+  },
 
   // Marketing State
   campaigns: [
